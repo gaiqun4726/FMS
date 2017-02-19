@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<paths>
+    <rootpath>J:\</rootpath>
+    <origindatapath>G11_origin_data</origindatapath>
+    <locinfopath>loc-info.csv</locinfopath>
+    <middlefilepath>Graduation Project\data</middlefilepath>
+    <mergefilepath>merge_files</mergefilepath>
+</paths>
