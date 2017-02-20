@@ -1,28 +1,70 @@
 # coding=utf-8
 # from loader import InitialFDLoader
+from datetime import timedelta
+from preprocessor import PreProcessor
+
+static_period = timedelta(seconds=30)
 
 
 class Extractor(object):
-    def __init__(self):
+    def __init__(self, processed_df):
         # self.initialFD = InitialFDLoader.getInitialFD()
-        self.period = 30
+        self.tagedSRCDataList = []
+        self.processed_df = processed_df
 
-    def extractStatic(self, processed_df):
+    def extractSRC(self):
         item = WiFiData('a', 1, 2)
-        staticList = [item]
-        return staticList
+        srcList = [item]
+        return srcList
 
-    def findBestPosition(self, wifiDataList):
-        positionID = 1
-        return positionID
+    def findBestLocation(self, srcData):
+        locationID = 1
+        return locationID
 
-    def getTagedData(self, staticList):
-        tagedDict = {1: 'a'}
-        return tagedDict
+    def getTagedSRCData(self, srcData):
+        locationID = self.findBestLocation(srcData)
+        tagedSRCData = TagedSRCData(srcData, locationID)
+        return tagedSRCData
+
+    def computePearsonCol(self, observeData, CalibrateData):
+        pearsonCol = .0
+        return pearsonCol
+
+    def getTagedSRCDataList(self):
+        srcList = self.extractSRC()
+        for srcData in srcList:
+            tagedSRCData = self.getTagedSRCData(srcData)
+            self.tagedSRCDataList.append(tagedSRCData)
+        return self.tagedSRCDataList
 
 
-class WiFiData(object):
+# 一个AP的Wi-Fi数据
+class WiFiDataUnit(object):
     def __init__(self, ap_mac, rssi, channel):
         self.ap_mac = ap_mac
         self.rssi = rssi
         self.channel = channel
+
+
+# 一个mu采集的所有AP的Wi-Fi数据
+class WiFiDataList(object):
+    def __init__(self, mu_mac):
+        self.mu_mac = mu_mac
+        self.fingerDataList = []
+
+    def setFingerDataList(self, fingerDataList):
+        self.fingerDataList = fingerDataList
+
+
+# 静止状态信号特征
+class SRCData(WiFiDataList):
+    def __init__(self, mu_mac):
+        WiFiDataList.__init__(self, mu_mac)
+
+
+# 有位置标记的静止状态信号特征
+class TagedSRCData(SRCData):
+    def __init__(self, srcData, locationID):
+        mu_mac = srcData.mu_mac
+        SRCData.__init__(self, mu_mac)
+        self.locationID = locationID

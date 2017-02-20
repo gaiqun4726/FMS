@@ -1,12 +1,15 @@
 # coding=utf-8
 import os
 from Queue import Queue
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pandas as pd
 
 # from fpms.models import InitialFD
 from loader import ResLoader
+
+slide_window = timedelta(minutes=1)
+mean_window = timedelta(milliseconds=500)
 
 
 # 初始指纹库生成类
@@ -97,8 +100,8 @@ class InitialFDGenerator(object):
 
 
 class PreProcessor(object):
-    def __init__(self, ordinary_mu, date_time):
-        self.ordinary_mu = ordinary_mu if ordinary_mu.__contains__('-') else ordinary_mu.replace(':', '-')
+    def __init__(self, date_time):
+        # self.ordinary_mu = ordinary_mu if ordinary_mu.__contains__('-') else ordinary_mu.replace(':', '-')
         self.date_time = date_time
         self.root_path = ResLoader.getRootPath()
         self.origin_data_path = os.path.join(os.path.join(self.root_path, ResLoader.getOriginDataPath()),
@@ -106,7 +109,7 @@ class PreProcessor(object):
         self.middle_file_path = os.path.join(self.root_path, ResLoader.getMiddleFilePath())
         self.date_file_path = os.path.join(self.middle_file_path, self.date_time)
         self.merge_file_path = os.path.join(self.date_file_path, ResLoader.getMergeFilePath())
-        self.all_mu_set = set()
+        self.all_mu_set = set()  # 保存一天之中所有mu的MAC地址的集合
 
     def mergeFiles(self):
         inpath = self.origin_data_path
@@ -151,30 +154,36 @@ class PreProcessor(object):
         data_df = pd.read_csv(
             filePath, header=None,
             names=['timestamp', 'ap_mac', 'rssi', 'channel', 'a', 'b', 'c', 'd', 'e', 'f'])
-        return data_df
+        collect_wifi_data = CollectWiFiData(data_df)
+        return collect_wifi_data
 
-    def filterData(self, data_df):
-        filtered_df = data_df
-        return filtered_df
+
+class CollectWiFiData(object):
+    def __init__(self, data_df):
+        self.data_df = data_df
+
+    def filterData(self):
+        global slide_window
+        self.data_df = []
 
     def kalmanFilter(self, filtered_df):
-        processed_df = filtered_df
-        return processed_df
+        global mean_window
+        self.data_df = []
 
 
-class Decoder(object):
-    def __init__(self, listenerSocket):
-        self.buffered_queue = Queue()
-        self.listenerSocket = listenerSocket
-
-    def getDatagram(self):
-        datagram = self.listenerSocket.recv(1500)
-        self.buffered_queue.put(datagram)
-
-    def decodeMessage(self):
-        while True:
-            datagram = self.buffered_queue.get()
-        pass
+# class Decoder(object):
+#     def __init__(self, listenerSocket):
+#         self.buffered_queue = Queue()
+#         self.listenerSocket = listenerSocket
+#
+#     def getDatagram(self):
+#         datagram = self.listenerSocket.recv(1500)
+#         self.buffered_queue.put(datagram)
+#
+#     def decodeMessage(self):
+#         while True:
+#             datagram = self.buffered_queue.get()
+#         pass
 
 
 if __name__ == '__main__':
