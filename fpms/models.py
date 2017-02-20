@@ -27,7 +27,8 @@ class PartialFD(models.Model):
     apMAC = models.CharField(max_length=20)
     rssi = models.IntegerField(default=-100)
     channel = models.IntegerField(default=0)
-    times = models.IntegerField(default=0)
+    usability = models.BooleanField(default=False)
+    historyDataPath = models.CharField(max_length=100)
 
 
 # 设备间信号强度回归系数数据库
@@ -41,6 +42,6 @@ class RegParameters(models.Model):
     # 截矩
     b = models.FloatField(default=0)
     # 权重
-    weight = models.FloatField(default=0)
-    # 训练数据集
+    parameterUsability = models.BooleanField(default=False)
+    # 训练数据集所在路径
     trainSetPath = models.CharField(max_length=100)

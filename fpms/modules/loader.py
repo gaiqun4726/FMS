@@ -36,7 +36,6 @@ class ResLoader(object):
 
 # 从数据库加载初始指纹库类
 # class InitialFDLoader(object):
-#     @staticmethod
 #     def getInitialFD():
 #         objects = InitialFD.objects.all()
 #         fd_dict = {}
@@ -49,10 +48,10 @@ class ResLoader(object):
 #             level1[apMAC] = {'rssi': rssi, 'channel': channel}
 #         return fd_dict
 
+# 部分更新指纹库和回归系数表始终在变化，所以不能使用静态方法从数据库中读取数据
 
 # 从数据库加载部分更新指纹库类
 # class PartialFDLoader(object):
-#     @staticmethod
 #     def getPartialFD():
 #         fd_dict = {}
 #         return fd_dict
@@ -60,7 +59,6 @@ class ResLoader(object):
 
 # 从数据库加载回归系数表类
 # class ParameterLoader(object):
-#     @staticmethod
 #     def getParameter():
 #         pass
 

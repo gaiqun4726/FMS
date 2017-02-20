@@ -8,27 +8,27 @@ import pandas as pd
 # from fpms.models import InitialFD
 from loader import ResLoader
 
-slide_window = timedelta(minutes=1)
-mean_window = timedelta(milliseconds=500)
+slideWindow = timedelta(minutes=1)
+meanWindow = timedelta(milliseconds=500)
 
 
 # 初始指纹库生成类
 class InitialFDGenerator(object):
-    def __init__(self, survey_mu, date_time):
-        self.survey_mu = survey_mu if survey_mu.__contains__('-') else survey_mu.replace(':', '-')
-        self.root_path = ResLoader.getRootPath()
-        self.middle_file_path = os.path.join(self.root_path, ResLoader.getMiddleFilePath())
-        self.date_time = date_time
-        self.date_file_path = os.path.join(self.middle_file_path, self.date_time)
-        self.loc_info_path = os.path.join(self.date_file_path, ResLoader.getLocInfoPath())
-        self.merge_file_path = os.path.join(self.date_file_path, ResLoader.getMergeFilePath())
-        self.finger_data_path = os.path.join(os.path.join(self.merge_file_path, self.survey_mu), '.csv')
+    def __init__(self, surveyMu, dateTime):
+        self.surveyMu = surveyMu if surveyMu.__contains__('-') else surveyMu.replace(':', '-')
+        self.rootPath = ResLoader.getRootPath()
+        self.middleFilePath = os.path.join(self.rootPath, ResLoader.getMiddleFilePath())
+        self.dateTime = dateTime
+        self.dateFilePath = os.path.join(self.middleFilePath, self.dateTime)
+        self.locInfoPath = os.path.join(self.dateFilePath, ResLoader.getLocInfoPath())
+        self.mergeFilePath = os.path.join(self.dateFilePath, ResLoader.getMergeFilePath())
+        self.fingerDataPath = os.path.join(os.path.join(self.mergeFilePath, self.surveyMu), '.csv')
 
         # 构建初始指纹库方法
         # def generateFD(self):
-        #     loc_info = pd.read_csv(self.loc_info_path)
+        #     loc_info = pd.read_csv(self.locInfoPath)
         #     finger_info = pd.read_csv(
-        #         self.finger_data_path, header=None, names=['time', 'mac', 'rssi', 'channel', 'a', 'b', 'c', 'd', 'e', 'f'])
+        #         self.fingerDataPath, header=None, names=['time', 'mac', 'rssi', 'channel', 'a', 'b', 'c', 'd', 'e', 'f'])
         #     for i in list("abcdef"):
         #         del finger_info[i]
         #     loc_dict = {}
@@ -99,24 +99,26 @@ class InitialFDGenerator(object):
         #             item.save()
 
 
+# Wi-Fi探针数据预处理类
 class PreProcessor(object):
-    def __init__(self, date_time):
+    def __init__(self, dateTime):
         # self.ordinary_mu = ordinary_mu if ordinary_mu.__contains__('-') else ordinary_mu.replace(':', '-')
-        self.date_time = date_time
-        self.root_path = ResLoader.getRootPath()
-        self.origin_data_path = os.path.join(os.path.join(self.root_path, ResLoader.getOriginDataPath()),
-                                             self.date_time)
-        self.middle_file_path = os.path.join(self.root_path, ResLoader.getMiddleFilePath())
-        self.date_file_path = os.path.join(self.middle_file_path, self.date_time)
-        self.merge_file_path = os.path.join(self.date_file_path, ResLoader.getMergeFilePath())
-        self.all_mu_set = set()  # 保存一天之中所有mu的MAC地址的集合
+        self.dateTime = dateTime
+        self.rootPath = ResLoader.getRootPath()
+        self.originDataPath = os.path.join(os.path.join(self.rootPath, ResLoader.getOriginDataPath()),
+                                           self.dateTime)
+        self.middleFilePath = os.path.join(self.rootPath, ResLoader.getMiddleFilePath())
+        self.dateFilePath = os.path.join(self.middleFilePath, self.dateTime)
+        self.mergeFilePath = os.path.join(self.dateFilePath, ResLoader.getMergeFilePath())
+        self.allMuSet = set()  # 保存一天之中所有mu的MAC地址的集合
 
+    # 将采集数据按照MAC地址分类
     def mergeFiles(self):
-        inpath = self.origin_data_path
-        outpath = self.merge_file_path
+        inpath = self.originDataPath
+        outpath = self.mergeFilePath
 
         if not os.path.isdir(inpath):
-            print(self.date_time + "没有Wi-Fi探针数据记录！")
+            print(self.dateTime + "没有Wi-Fi探针数据记录！")
             return -1
 
         print("将探针数据按MAC地址分类--start")
@@ -129,16 +131,16 @@ class PreProcessor(object):
                 dict_of_file = {}
                 for line in fin:
                     seg = line.split(',')
-                    mu_mac = seg[2].replace(':', '-')
+                    muMac = seg[2].replace(':', '-')
                     del seg[2]
                     # 将ap剔除，保存mu
                     if int(seg[4]) == 1:
-                        self.all_mu_set.add(mu_mac)
+                        self.allMuSet.add(muMac)
                     line = ','.join(seg)
-                    if mu_mac in dict_of_file:
-                        dict_of_file[mu_mac].append(line)
+                    if muMac in dict_of_file:
+                        dict_of_file[muMac].append(line)
                     else:
-                        dict_of_file[mu_mac] = [line]
+                        dict_of_file[muMac] = [line]
                 fin.close()
                 for block in dict_of_file:
                     try:
@@ -148,27 +150,35 @@ class PreProcessor(object):
                     except IOError:
                         print(block)
         print("将记录按MAC地址分类--end")
-        print('采样周期内，所有连接系统内AP的MAC地址列表个数%d：\n' % len(self.all_mu_set))
+        print('采样周期内，所有连接系统内AP的MAC地址列表个数%d：\n' % len(self.allMuSet))
 
-    def loadData(self, filePath):
-        data_df = pd.read_csv(
+    # 载入一个mu全天的探针数据，并进行信道切换数据剔除、卡尔曼滤波等预处理操作
+    def loadData(self, muMac):
+        filePath = os.path.join(os.path.join(self.mergeFilePath, muMac), '.csv')
+        dataDf = pd.read_csv(
             filePath, header=None,
             names=['timestamp', 'ap_mac', 'rssi', 'channel', 'a', 'b', 'c', 'd', 'e', 'f'])
-        collect_wifi_data = CollectWiFiData(data_df)
-        return collect_wifi_data
+        collectWifiData = CollectWiFiData(dataDf)
+        return collectWifiData.getCollectWiFiData()
 
 
+# 持有Wi-Fi探针数据的类
 class CollectWiFiData(object):
-    def __init__(self, data_df):
-        self.data_df = data_df
+    def __init__(self, dataDf):
+        self.dataDf = dataDf
+        self.filterData()
+        self.kalmanFilter()
 
     def filterData(self):
-        global slide_window
-        self.data_df = []
+        global slideWindow
+        self.dataDf = []
 
     def kalmanFilter(self, filtered_df):
-        global mean_window
-        self.data_df = []
+        global meanWindow
+        self.dataDf = []
+
+    def getCollectWiFiData(self):
+        return self.dataDf
 
 
 # class Decoder(object):
