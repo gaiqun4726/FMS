@@ -158,12 +158,20 @@ class PreProcessor(object):
         dataDf = pd.read_csv(
             filePath, header=None,
             names=['timestamp', 'ap_mac', 'rssi', 'channel', 'a', 'b', 'c', 'd', 'e', 'f'])
-        collectWifiData = CollectWiFiData(dataDf)
-        return collectWifiData.getCollectWiFiData()
+        collectWifiData = CollectWifiData(dataDf)
+        return collectWifiData.getCollectWifiData()
+
+    def checkInitialFD(self):
+        initialFD = []
+        if initialFD == []:
+            print('没有初始指纹库')
+            return False
+        else:
+            return True
 
 
 # 持有Wi-Fi探针数据的类
-class CollectWiFiData(object):
+class CollectWifiData(object):
     def __init__(self, dataDf):
         self.dataDf = dataDf
         self.filterData()
@@ -173,11 +181,11 @@ class CollectWiFiData(object):
         global slideWindow
         self.dataDf = []
 
-    def kalmanFilter(self, filtered_df):
+    def kalmanFilter(self):
         global meanWindow
         self.dataDf = []
 
-    def getCollectWiFiData(self):
+    def getCollectWifiData(self):
         return self.dataDf
 
 

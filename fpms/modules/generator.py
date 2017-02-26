@@ -29,6 +29,9 @@ class Scheduler(threading.Thread):
         dateTime = datetime.strftime(yesterday, strFormat)
         print('------探针数据按MAC地址分类start------')
         preprocessor = PreProcessor(dateTime)
+        if preprocessor.checkInitialFD() is False:
+            print('指纹库未更新！')
+            return
         preprocessor.mergeFiles()
         print('------探针数据按MAC地址分类end------')
         muSet = preprocessor.allMuSet
@@ -59,5 +62,5 @@ class Scheduler(threading.Thread):
 
     # 检查部分更新指纹库是否已经满足指纹库更新条件
     def checkPartialFD(self, partialFD, dict1, dict2):
-        # 检查部分更新指纹库中，是否每个聚类分区中都有超过50%的更新数据
+        # 检查部分更新指纹库中，是否每个聚类分区中都有超过30%的更新数据
         return True
