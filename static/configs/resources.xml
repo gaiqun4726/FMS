@@ -2,7 +2,10 @@
 <paths>
     <rootpath>J:\</rootpath>
     <origindatapath>G11_origin_data</origindatapath>
-    <locinfopath>loc-info.csv</locinfopath>
     <middlefilepath>Graduation Project\data</middlefilepath>
     <mergefilepath>merge_files</mergefilepath>
+    <resourcepath>Graduation Project\resources</resourcepath>
+
+    <locinfopath>loc-info.csv</locinfopath>
+    <aplistpath>AP-list.csv</aplistpath>
 </paths>

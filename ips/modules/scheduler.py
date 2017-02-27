@@ -27,5 +27,6 @@ class Scheduler(object):
         locatingThread.start()
 
 
+# 仅限于本地测试，在web服务器部署时用不到
 if __name__ == '__main__':
     Scheduler.startIPS()

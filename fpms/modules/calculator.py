@@ -1,9 +1,9 @@
 # coding=utf-8
 import numpy as np
 from pandas import DataFrame
+from sklearn.cluster import AffinityPropagation
 
 # from loader import InitialFDLoader, PartialFDLoader
-from sklearn.cluster import AffinityPropagation
 
 spectrumDict = {}
 

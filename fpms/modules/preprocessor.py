@@ -1,12 +1,12 @@
 # coding=utf-8
 import os
 from Queue import Queue
-from datetime import datetime, timedelta
-
-import pandas as pd
+from scipy.stats import mode
+from pandas import DataFrame
 
 # from fpms.models import InitialFD
 from loader import ResLoader
+from utility import *
 
 slideWindow = timedelta(minutes=1)
 meanWindow = timedelta(milliseconds=500)
@@ -22,7 +22,7 @@ class InitialFDGenerator(object):
         self.dateFilePath = os.path.join(self.middleFilePath, self.dateTime)
         self.locInfoPath = os.path.join(self.dateFilePath, ResLoader.getLocInfoPath())
         self.mergeFilePath = os.path.join(self.dateFilePath, ResLoader.getMergeFilePath())
-        self.fingerDataPath = os.path.join(os.path.join(self.mergeFilePath, self.surveyMu), '.csv')
+        self.fingerDataPath = os.path.join(self.mergeFilePath, self.surveyMu + ".csv")
 
         # 构建初始指纹库方法
         # def generateFD(self):
@@ -154,13 +154,13 @@ class PreProcessor(object):
 
     # 载入一个mu全天的探针数据，并进行信道切换数据剔除、卡尔曼滤波等预处理操作
     def loadData(self, muMac):
-        filePath = os.path.join(os.path.join(self.mergeFilePath, muMac), '.csv')
-        dataDf = pd.read_csv(
-            filePath, header=None,
-            names=['timestamp', 'ap_mac', 'rssi', 'channel', 'a', 'b', 'c', 'd', 'e', 'f'])
+        filePath = os.path.join(self.mergeFilePath, muMac + '.csv')
+        headers = ['time', 'apmac', 'rssi', 'channel', 'isassociated', 'type', 'seq', 'frame', 'bssid', 'noise']
+        dataDf = pd.read_csv(filePath, header=None, names=headers)
         collectWifiData = CollectWifiData(dataDf)
         return collectWifiData.getCollectWifiData()
 
+    # 检查数据库中是否已经有初始指纹库
     def checkInitialFD(self):
         initialFD = []
         if initialFD == []:
@@ -174,19 +174,45 @@ class PreProcessor(object):
 class CollectWifiData(object):
     def __init__(self, dataDf):
         self.dataDf = dataDf
+        self.rssiDf = ''  # 保存信号强度的DataFrame
+        self.channelDf = ''  # 保存信道的DataFrame
         self.filterData()
         self.kalmanFilter()
 
+    # 数据过滤，对一秒钟的所有数据，选择最佳信道，取均值
     def filterData(self):
-        global slideWindow
-        self.dataDf = []
+        grouped1 = self.dataDf.groupby(['time', 'apmac'])['rssi'].apply(lambda x: x.mean())
+        grouped2 = self.dataDf.groupby(['time', 'apmac'])['channel'].apply(lambda x: mode(x)[0][0])
+        self.rssiDf = grouped1.unstack()
+        self.channelDf = grouped2.unstack()
 
+    # 对采样数据进行缺失值插补，然后进行滤波操作
     def kalmanFilter(self):
         global meanWindow
-        self.dataDf = []
+        self.rssiDf = self.rssiDf.sort_index()
+        self.channelDf = self.channelDf.sort_index()
+        self.rssiDf.fillna(method='bfill', axis=0, inplace=True)
+        self.rssiDf.fillna(method='ffill', axis=0, inplace=True)
+        self.channelDf.fillna(method='bfill', axis=0, inplace=True)
+        self.channelDf.fillna(method='ffill', axis=0, inplace=True)
+        # print(u'channel size:%d' % len(self.channelDf))
+        index = self.rssiDf.index
+        columns = self.rssiDf.columns
+        arr = np.array(self.rssiDf)
+        arr = arr.T
+        newList = []
+        for x in arr:
+            newList.append(list(kalman_filter_method(x)))
+        arr = np.array(newList).T
+        df = DataFrame(arr)
+        df.set_index(index)
+        df.index = index
+        df.columns = columns
+        self.dataDf = df
 
     def getCollectWifiData(self):
-        return self.dataDf
+        # print self.dataDf
+        return self.dataDf, self.channelDf
 
 
 # class Decoder(object):
@@ -205,5 +231,5 @@ class CollectWifiData(object):
 
 
 if __name__ == '__main__':
-    pp = PreProcessor('', '2017-01-17')
-    print pp.mergeFiles()
+    pp = PreProcessor('2017-01-17')
+    print len(pp.loadData('00-0F-E2-F0-66-A0'))

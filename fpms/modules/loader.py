@@ -1,9 +1,10 @@
 # coding=utf-8
 
-# from fpms.models import InitialFD
 from xml.dom.minidom import parse
 import xml.dom.minidom
 import os
+
+# from fpms.models import InitialFD
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -26,12 +27,20 @@ class ResLoader(object):
         return ResLoader.__collection.getElementsByTagName("middlefilepath")[0].childNodes[0].data
 
     @staticmethod
+    def getMergeFilePath():
+        return ResLoader.__collection.getElementsByTagName("mergefilepath")[0].childNodes[0].data
+
+    @staticmethod
+    def getResourcePath():
+        return ResLoader.__collection.getElementsByTagName("resourcepath")[0].childNodes[0].data
+
+    @staticmethod
     def getLocInfoPath():
         return ResLoader.__collection.getElementsByTagName("locinfopath")[0].childNodes[0].data
 
     @staticmethod
-    def getMergeFilePath():
-        return ResLoader.__collection.getElementsByTagName("mergefilepath")[0].childNodes[0].data
+    def getAPListPath():
+        return ResLoader.__collection.getElementsByTagName("aplistpath")[0].childNodes[0].data
 
 
 # 从数据库加载初始指纹库类

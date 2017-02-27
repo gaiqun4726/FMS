@@ -1,12 +1,13 @@
 # coding=utf-8
 
+from threading import Timer
+import threading
+from datetime import datetime, timedelta
+
 from preprocessor import *
 from extractor import *
 from corrector import *
 from calculator import *
-from threading import Timer
-import threading
-from datetime import datetime, timedelta
 from loader import ResLoader
 
 strFormat = "%Y-%m-%d"
