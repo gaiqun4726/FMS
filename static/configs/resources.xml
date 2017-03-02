@@ -2,10 +2,19 @@
 <paths>
     <rootpath>J:\</rootpath>
     <origindatapath>G11_origin_data</origindatapath>
+
     <middlefilepath>Graduation Project\data</middlefilepath>
     <mergefilepath>merge_files</mergefilepath>
-    <resourcepath>Graduation Project\resources</resourcepath>
 
-    <locinfopath>loc-info.csv</locinfopath>
-    <aplistpath>AP-list.csv</aplistpath>
+    <resourcepath>Graduation Project\resources</resourcepath>
+    <aplist>ap-list.csv</aplist>
+    <locationcoordinates>location-coordinates.csv</locationcoordinates>
+    <samplefingerdatapath>sample_finger_data</samplefingerdatapath>
+    <fingerorigindatapath>origin_data</fingerorigindatapath>
+    <fingermergedatapath>merge_data</fingermergedatapath>
+    <sampleinfo>sample-info.csv</sampleinfo>
+
+    <calibratemumac>B4-0B-44-2F-C8-A2</calibratemumac>
+
+
 </paths>

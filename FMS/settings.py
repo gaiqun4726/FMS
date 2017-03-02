@@ -26,7 +26,7 @@ SECRET_KEY = 'jt59lbk0_%(@d(fn$u9%j8vrs=^4hnf6x&3r2lzg(zh+rctnsx'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -83,7 +83,7 @@ DATABASES = {
         'NAME': 'fms',  # 你的数据库名称
         'USER': 'fms',  # 你的数据库用户名
         'PASSWORD': '123',  # 你的数据库密码
-        'HOST': '',  # 你的数据库主机，留空默认为localhost
+        'HOST': '127.0.0.1',  # 你的数据库主机，留空默认为localhost
         'PORT': '3306',  # 你的数据库端口
     }
 }

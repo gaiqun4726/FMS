@@ -1,14 +1,16 @@
 # coding=utf-8
 
 import os
+from scipy.stats import pearsonr
 
 from preprocessor import PreProcessor
-from loader import ResLoader
+from loader import ResLoader,SpectrumLoader
 from utility import *
 
 # from loader import InitialFDLoader
 
 static_period = timedelta(seconds=30)
+calibrateMuMac = ResLoader.getCalibrateMuMac()
 
 
 # 更新数据提取类
@@ -19,6 +21,7 @@ class Extractor(object):
         self.tagedSRCDataList = []
         self.processedDf = processedDf
         self.channelDf = channelDf
+        self.calibrateDataDict = self.formulateFDToSRC()
 
     # 提取静止状态信号特征
     def extractSRC(self):
@@ -68,24 +71,45 @@ class Extractor(object):
                     else:
                         seq.append(value)
                         pattern[y] = seq
-
         return srcList
 
     # 求得最佳位置标签
     def findBestLocation(self, srcData):
-        locationID = 1
-        return locationID
+        calibrateDataDict = self.calibrateDataDict
+        bestCor = 0
+        bestLocationID = 0
+        for locationID in calibrateDataDict.keys():
+            calibrateData = calibrateDataDict[locationID]
+            pearsonCor = self.computePearsonCor(srcData, calibrateData)
+            if pearsonCor > bestCor:
+                bestCor = pearsonCor
+                bestLocationID = locationID
+        return bestLocationID
 
-    # 返回标记后的更新数据
+    # 获取标记的更新数据
     def getTagedSRCData(self, srcData):
         locationID = self.findBestLocation(srcData)
         tagedSRCData = TagedSRCData(srcData, locationID)
         return tagedSRCData
 
     # 计算pearson相关系数
-    def computePearsonCol(self, observeData, CalibrateData):
-        pearsonCol = .0
-        return pearsonCol
+    def computePearsonCor(self, observeData, calibrateData):
+        X = []
+        Y = []
+        observeFingerList = observeData.getFingerDataList()
+        calibrateFingerList = calibrateData.getFingerDataList()
+        rssiDict1 = {}
+        rssiDict2 = {}
+        for item1 in observeFingerList:
+            rssiDict1[item1.apMac] = item1.rssi
+        for item2 in calibrateFingerList:
+            rssiDict2[item2.apMac] = item2.rssi
+        for key in rssiDict1.keys():
+            if key in rssiDict2.keys():
+                X.append(rssiDict1[key])
+                Y.append(rssiDict2[key])
+        r, p = pearsonr(X, Y)
+        return r
 
     # 返回标记更新数据列表
     def getTagedSRCDataList(self):
@@ -93,7 +117,26 @@ class Extractor(object):
         for srcData in srcList:
             tagedSRCData = self.getTagedSRCData(srcData)
             self.tagedSRCDataList.append(tagedSRCData)
-        return self.tagedSRCDataList  # 一个AP的Wi-Fi数据
+        return self.tagedSRCDataList
+
+    # 将指纹库整理成SRCData的格式，便于计算pearson相关系数
+    def formulateFDToSRC(self):
+        # fingerDict = self.initialFD
+        sploader = SpectrumLoader()
+        fingerDict = sploader.loadSpectrum()
+        res = {}
+        for locationID in fingerDict.keys():
+            wifiDataList = []
+            for apMac in fingerDict[locationID].keys():
+                rssi = fingerDict[locationID][apMac][0]
+                channel = 0 # fingerDict[locationID][apMac][1]
+                wifiDataUnit = WiFiDataUnit(apMac, rssi, channel)
+                wifiDataList.append(wifiDataUnit)
+            global calibrateMuMac
+            srcData = SRCData(calibrateMuMac)
+            srcData.setFingerDataList(wifiDataList)
+            res[locationID] = srcData
+        return res
 
 
 class WiFiDataUnit(object):
@@ -111,6 +154,9 @@ class WiFiDataList(object):
 
     def setFingerDataList(self, fingerDataList):
         self.fingerDataList = fingerDataList
+
+    def getFingerDataList(self):
+        return self.fingerDataList
 
 
 # 静止状态信号特征
@@ -132,4 +178,4 @@ if __name__ == '__main__':
     muMac = 'B4-0B-44-2F-C8-A2'
     rssiDf, channelDf = preprocessor.loadData(muMac)
     extractor = Extractor(muMac, rssiDf, channelDf)
-    print(extractor.extractSRC())
+    print(extractor.getTagedSRCDataList())
