@@ -5,7 +5,7 @@ import xml.dom.minidom
 import os
 import pandas as pd
 
-from fpms.models import InitialFD, PartialFD, RegParameters
+from fpms.models import InitialFD, PartialFD, RegParameters, UpdateFD
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -80,6 +80,13 @@ class ResLoader(object):
         return os.path.join(sampleFingerDataPath, sampleInfo)
 
     @staticmethod
+    def getRegressionTrainSetPath():
+        resourcePath = ResLoader.getResourcePath()
+        regressionTrainSetPath = ResLoader.__collection.getElementsByTagName("regressiontrainsetpath")[0].childNodes[
+            0].data
+        return os.path.join(resourcePath, regressionTrainSetPath)
+
+    @staticmethod
     def getCalibrateMuMac():
         calibrateMuMac = ResLoader.__collection.getElementsByTagName("calibratemumac")[0].childNodes[0].data
         return calibrateMuMac
@@ -90,7 +97,9 @@ class InitialFDLoader(object):
     @staticmethod
     def getInitialFD():
         objects = InitialFD.objects.all()
-        print len(objects)
+        if objects.count() == 0:
+            print(u'初始指纹库记录条数为0')
+            return -1
         fd_dict = {}
         for item in objects:
             locationID = item.locationID
@@ -102,20 +111,64 @@ class InitialFDLoader(object):
             fd_dict[locationID] = level1
         return fd_dict
 
+
 # 部分更新指纹库和回归系数表始终在变化，所以不能使用静态方法从数据库中读取数据
 
 # 从数据库加载部分更新指纹库类
 class PartialFDLoader(object):
     def getPartialFD(self):
-        # objects =
+        objects = PartialFD.objects.all()
+        if objects.count() == 0:
+            print(u'部分更新指纹库记录条数为0')
+            return -1
         fd_dict = {}
+        for item in objects:
+            locationID = item.locationID
+            apMAC = item.apMAC
+            rssi = item.rssi
+            channel = item.channel
+            level1 = fd_dict.get(locationID, {})
+            level1[apMAC] = {'rssi': rssi, 'channel': channel}
+            fd_dict[locationID] = level1
         return fd_dict
 
 
 # 从数据库加载回归系数表类
-# class ParameterLoader(object):
-#     def getParameter():
-#         pass
+class ParameterLoader(object):
+    def getParameter(self, muMac):
+        objects = RegParameters.objects.filter(commonMU=muMac)
+        if objects.count() == 0:
+            return -1
+        item = objects[0]
+        surveyMU = item.surveyMU
+        commonMU = item.commonMU
+        a = item.a
+        b = item.b
+        Q = item.Q
+        parameterUsability = item.parameterUsability
+        trainSetPath = item.trainSetPath
+        para_dict = {'surveyMU': surveyMU, 'commonMU': commonMU, 'a': a, 'b': b, 'Q': Q,
+                     'parameterUsability': parameterUsability, 'trainSetPath': trainSetPath}
+        return para_dict
+
+
+# 根据生成日期，查找更新指纹库
+class UpdateFDLoader(object):
+    def getUpdateFD(self, dateTime):
+        objects = UpdateFD.objects.filter(dateTime=dateTime)
+        if objects.count() == 0:
+            print(u'%s 这一天没有更新指纹库生成' % dateTime)
+            return -1
+        fd_dict = {}
+        for item in objects:
+            locationID = item.locationID
+            apMAC = item.apMAC
+            rssi = item.rssi
+            channel = item.channel
+            level1 = fd_dict.get(locationID, {})
+            level1[apMAC] = {'rssi': rssi, 'channel': channel}
+            fd_dict[locationID] = level1
+        return fd_dict
 
 
 # 从csv文件中加载指纹库

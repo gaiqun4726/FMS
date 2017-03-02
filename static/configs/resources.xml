@@ -13,6 +13,7 @@
     <fingerorigindatapath>origin_data</fingerorigindatapath>
     <fingermergedatapath>merge_data</fingermergedatapath>
     <sampleinfo>sample-info.csv</sampleinfo>
+    <regressiontrainsetpath>regression_train_set</regressiontrainsetpath>
 
     <calibratemumac>B4-0B-44-2F-C8-A2</calibratemumac>
 

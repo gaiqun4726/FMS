@@ -4,10 +4,8 @@ import os
 from scipy.stats import pearsonr
 
 from preprocessor import PreProcessor
-from loader import ResLoader,SpectrumLoader
+from loader import ResLoader, SpectrumLoader, InitialFDLoader
 from utility import *
-
-# from loader import InitialFDLoader
 
 static_period = timedelta(seconds=30)
 calibrateMuMac = ResLoader.getCalibrateMuMac()
@@ -16,7 +14,7 @@ calibrateMuMac = ResLoader.getCalibrateMuMac()
 # 更新数据提取类
 class Extractor(object):
     def __init__(self, muMac, processedDf, channelDf):
-        # self.initialFD = InitialFDLoader.getInitialFD()
+        self.initialFD = InitialFDLoader.getInitialFD()
         self.muMac = muMac
         self.tagedSRCDataList = []
         self.processedDf = processedDf
@@ -26,8 +24,7 @@ class Extractor(object):
     # 提取静止状态信号特征
     def extractSRC(self):
         srcList = []
-        apListPath = os.path.join(os.path.join(ResLoader.getRootPath(), ResLoader.getResourcePath()),
-                                  ResLoader.getAPListPath())
+        apListPath = ResLoader.getApList()
         # 读取ap_list文件
         fh = open(apListPath)
         ap = fh.readlines()
@@ -121,15 +118,15 @@ class Extractor(object):
 
     # 将指纹库整理成SRCData的格式，便于计算pearson相关系数
     def formulateFDToSRC(self):
-        # fingerDict = self.initialFD
-        sploader = SpectrumLoader()
-        fingerDict = sploader.loadSpectrum()
+        fingerDict = self.initialFD
+        # sploader = SpectrumLoader()
+        # fingerDict = sploader.loadSpectrum()
         res = {}
         for locationID in fingerDict.keys():
             wifiDataList = []
             for apMac in fingerDict[locationID].keys():
-                rssi = fingerDict[locationID][apMac][0]
-                channel = 0 # fingerDict[locationID][apMac][1]
+                rssi = fingerDict[locationID][apMac]['rssi']
+                channel = fingerDict[locationID][apMac]['channel']
                 wifiDataUnit = WiFiDataUnit(apMac, rssi, channel)
                 wifiDataList.append(wifiDataUnit)
             global calibrateMuMac

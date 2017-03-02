@@ -5,7 +5,7 @@ from scipy.stats import mode
 from pandas import DataFrame
 
 from fpms.models import InitialFD
-from loader import ResLoader
+from loader import ResLoader, InitialFDLoader
 from utility import *
 
 slideWindow = timedelta(minutes=1)
@@ -189,8 +189,8 @@ class PreProcessor(object):
 
     # 检查数据库中是否已经有初始指纹库
     def checkInitialFD(self):
-        initialFD = []
-        if initialFD == []:
+        initialFD = InitialFDLoader.getInitialFD()
+        if initialFD == {}:
             print('没有初始指纹库')
             return False
         else:

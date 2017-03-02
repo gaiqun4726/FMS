@@ -11,6 +11,7 @@ df2 = pd.read_csv(path2, index_col=['locationID'])
 indexList = list(df1.index)
 columnList = list(df1.columns)
 
+# 将两次的指纹库融合起来，仅供测试使用
 for index in indexList:
     if index in df2.index:
         for column in columnList:
