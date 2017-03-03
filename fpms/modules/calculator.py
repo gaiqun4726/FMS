@@ -1,11 +1,10 @@
 # coding=utf-8
+
 import numpy as np
 from pandas import DataFrame
 from sklearn.cluster import AffinityPropagation
 
-# from loader import InitialFDLoader, PartialFDLoader
-
-spectrumDict = {}
+from loader import InitialFDLoader, PartialFDLoader
 
 
 # 使用部分更新指纹库中的数据对缺失指纹进行推算，从而构建完整更新指纹库的类
@@ -58,7 +57,8 @@ class SpaceCluster(object):
 
     # 将dict类型的指纹转化成array
     def getFDArray(self):
-        df = DataFrame(spectrumDict).T
+        fd_dict = InitialFDLoader.getInitialFD()
+        df = DataFrame(fd_dict).T
         self.X = df.applymap(lambda x: x[0]).values
         self.labels = list(df.index)
 

@@ -8,12 +8,14 @@
 
     <resourcepath>Graduation Project\resources</resourcepath>
     <aplist>ap-list.csv</aplist>
+    <clusterresults>cluster-results.csv</clusterresults>
     <locationcoordinates>location-coordinates.csv</locationcoordinates>
     <samplefingerdatapath>sample_finger_data</samplefingerdatapath>
     <fingerorigindatapath>origin_data</fingerorigindatapath>
     <fingermergedatapath>merge_data</fingermergedatapath>
     <sampleinfo>sample-info.csv</sampleinfo>
     <regressiontrainsetpath>regression_train_set</regressiontrainsetpath>
+    <partialfdhistorydatapath>partialfd_history_data</partialfdhistorydatapath>
 
     <calibratemumac>B4-0B-44-2F-C8-A2</calibratemumac>
 

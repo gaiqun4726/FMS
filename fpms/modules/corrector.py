@@ -2,39 +2,22 @@
 
 import os
 import pickle
+import numpy as np
+from sklearn import linear_model
 
 from loader import InitialFDLoader, PartialFDLoader, ParameterLoader, ResLoader
 from extractor import TagedSRCData
-from fpms.models import RegParameters
+from fpms.models import RegParameters, PartialFD
 
 standardQ = .3
 
 
 # 设备信号差异性校正类
 class Corrector(object):
-    # def __init__(self, tagedDict):
-    #     self.initialFD = InitialFDLoader.getInitialFD()
-    #     self.parameter = ''
-    #     self.tagedDict = tagedDict
-    #
-    # def updatePara(self):
-    #     parameter = ParameterLoader.getParameter()
-    #     pass
-    #
-    # def loadPara(self):
-    #     self.parameter = ParameterLoader.getParameter()
-    #     pass
-    #
-    # def removeDiff(self):
-    #     pass
-    #
-    # def updatePartialFD(self, modifiedDict):
-    #     partialFD = PartialFDLoader.getPartialFD()
-    #     pass
     def __init__(self, muMac, tagedSRCDataList):
         self.muMac = muMac
         self.parameterUsability = False
-        self.parameterDict = []
+        self.parameterDict = {}
         self.tagedSRCDataList = tagedSRCDataList
         self.updateDataList = []
 
@@ -54,7 +37,13 @@ class Corrector(object):
     def removeDiff(self, tagedSRCData):
         # 利用回归方程剔除设备信号差异性
         locationID = tagedSRCData.locationID
-        fingerDataList = []
+        fingerDataList = tagedSRCData.getFingerDataList()
+        a = self.parameterDict['a']
+        b = self.parameterDict['b']
+        for item in fingerDataList:
+            rssi = item.rssi
+            newRssi = a * rssi + b
+            item.rssi = newRssi
         updateData = TagedSRCData(self.muMac, locationID)
         updateData.setFingerDataList(fingerDataList)
         return updateData
@@ -64,16 +53,50 @@ class Corrector(object):
 class MergeData(object):
     def __init__(self):
         self.partialFD = {}
-        self.partialFDHistoryData = {}
 
     # 将更新数据存入部分更新指纹库的历史数据，等待日后merge，取均值
     def mergeDataToPartialFD(self, updateDataList):
+        self.partialFD = PartialFDLoader.getPartialFD()
         for updateData in updateDataList:
             locationID = updateData.locationID
-            historyData = self.partialFDHistoryData.get(locationID, [])
-            historyData.append(updateData.fingerDataList)
-            self.partialFDHistoryData[locationID] = historyData
-            # 将部分更新指纹库及历史数据存入数据库和本地文件
+            if locationID in self.partialFD.keys():
+                for item in updateData.getFingerDataList():
+                    apMac = item.apMac
+                    if apMac in self.partialFD[locationID].keys():
+                        historyDataPath = os.path.join(ResLoader.getPartialFDHistoryDataPath(),
+                                                       self.partialFD[locationID][apMac]['historyDataPath'])
+                        historyDataList = []
+                        with open(historyDataPath, "rb") as historyDataFile:
+                            try:
+                                while True:
+                                    historyData = pickle.load(historyDataFile)
+                                    historyDataList.append(historyData)
+                            except EOFError:
+                                pass
+                        historyDataList.append(item)
+                        output = open(historyDataPath, 'wb')
+                        for item2 in historyDataList:
+                            pickle.dump(item2, output, -1)
+                        output.close()
+                    else:
+                        fileName = str(locationID) + apMac
+                        path = os.path.join(ResLoader.getPartialFDHistoryDataPath(), fileName)
+                        output = open(path, 'wb')
+                        pickle.dump(item, output, -1)
+                        output.close()
+                        partialFD = PartialFD(locationID=locationID, apMac=item.apMac, rssi=item.rssi,
+                                              channel=item.channel, historyDataPath=path)
+                        partialFD.save()
+            else:
+                for item in updateData.getFingerDataList():
+                    fileName = str(locationID) + item.apMac
+                    path = os.path.join(ResLoader.getPartialFDHistoryDataPath(), fileName)
+                    output = open(path, 'wb')
+                    pickle.dump(item, output, -1)
+                    output.close()
+                    partialFD = PartialFD(locationID=locationID, apMac=item.apMac, rssi=item.rssi, channel=item.channel,
+                                          historyDataPath=path)
+                    partialFD.save()
 
 
 # 自动更新回归系数表类
@@ -149,9 +172,9 @@ class RegeressionPar(object):
             for item in self.trainDataList:
                 pickle.dump(item, output, -1)
             output.close()
-            record = RegParameters(surveyMU=surveyMU, commonMU=commonMU, a=a, b=b, Q=Q,
-                                   parameterUsability=parameterUsability, trainSetPath=trainSetPath)
-            record.save()
+            record = RegParameters.objects.filter(surveyMU=surveyMU, commonMU=commonMU)
+            record.update(a=a, b=b, Q=Q,
+                          parameterUsability=parameterUsability, trainSetPath=trainSetPath)
         else:
             path = os.path.join(ResLoader.getRegressionTrainSetPath(), self.muMac)
             output = open(path, 'wb')
@@ -165,12 +188,50 @@ class RegeressionPar(object):
 
     # 使用训练数据构建线性回归方程，并求解回归方程的回归系数
     def computeParameter(self):
-        # fd_dict = InitialFDLoader.getInitialFD()
-        # self.trainDataList
-        newParameterDict = {}
+        fd_dict = InitialFDLoader.getInitialFD()
+        train_X = []
+        train_Y = []
+        for item in self.trainDataList:
+            locationID = item.locationID
+            fingerDataList = item.getFingerDataList()
+            if locationID in fd_dict.keys():
+                for item2 in fingerDataList:
+                    o_apMac = item2.apMac
+                    o_rssi = item2.rssi
+                    o_channel = item2.channel
+                    item3 = fd_dict[locationID][o_apMac]
+                    c_rssi = item3['rssi']
+                    c_channel = item3['channel']
+                    if o_channel == c_channel and c_rssi != -100:
+                        train_X.append(o_rssi)
+                        train_Y.append(c_rssi)
+        length = len(train_Y)
+        train_X = np.array(train_X).reshape((length, 1))
+        regr = linear_model.LinearRegression()
+        regr.fit(train_X, train_Y)
+        a = regr.coef_
+        b = regr.intercept_
+        newParameterDict = {'a': a, 'b': b}
         return newParameterDict
 
     # 计算信号强度分布占比Q
     def computeQ(self, trainDataList):
         Q = 0
+        if len(trainDataList) != 0:
+            s_rssi_range = set()
+            s_location_range = set()
+            for item in trainDataList:
+                fingerDataList = item.getFingerDataList()
+                s_location_range.add(item.locationID)
+                for item2 in fingerDataList:
+                    rssi = item2.rssi
+                    s_rssi_range.add(rssi)
+            fd_dict = InitialFDLoader.getInitialFD()
+            location_times = 0
+            for location in s_location_range:
+                if location in fd_dict.keys():
+                    location_times += 1
+            ratio_rssi = len(s_rssi_range) / 60
+            ratio_location = location_times / len(fd_dict.keys())
+            Q = round(ratio_rssi * ratio_location, 2)
         return Q

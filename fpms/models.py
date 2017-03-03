@@ -28,7 +28,7 @@ class PartialFD(models.Model):
     apMAC = models.CharField(max_length=20)
     rssi = models.IntegerField(default=-100)
     channel = models.IntegerField(default=0)
-    usability = models.BooleanField(default=False)
+    # usability = models.BooleanField(default=False)
     historyDataPath = models.CharField(default='', max_length=100)
 
 

@@ -50,6 +50,12 @@ class ResLoader(object):
         return os.path.join(resourcePath, apList)
 
     @staticmethod
+    def getClusterResults():
+        resourcePath = ResLoader.getResourcePath()
+        clusterResults = ResLoader.__collection.getElementsByTagName("clusterresults")[0].childNodes[0].data
+        return os.path.join(resourcePath, clusterResults)
+
+    @staticmethod
     def getLocationCoordinates():
         resourcePath = ResLoader.getResourcePath()
         locationCoordinates = ResLoader.__collection.getElementsByTagName("locationcoordinates")[0].childNodes[0].data
@@ -87,6 +93,14 @@ class ResLoader(object):
         return os.path.join(resourcePath, regressionTrainSetPath)
 
     @staticmethod
+    def getPartialFDHistoryDataPath():
+        resourcePath = ResLoader.getResourcePath()
+        partialFDHistoryDataPath = \
+            ResLoader.__collection.getElementsByTagName("partialfdhistorydatapath")[0].childNodes[
+                0].data
+        return os.path.join(resourcePath, partialFDHistoryDataPath)
+
+    @staticmethod
     def getCalibrateMuMac():
         calibrateMuMac = ResLoader.__collection.getElementsByTagName("calibratemumac")[0].childNodes[0].data
         return calibrateMuMac
@@ -99,7 +113,6 @@ class InitialFDLoader(object):
         objects = InitialFD.objects.all()
         if objects.count() == 0:
             print(u'初始指纹库记录条数为0')
-            return -1
         fd_dict = {}
         for item in objects:
             locationID = item.locationID
@@ -120,15 +133,15 @@ class PartialFDLoader(object):
         objects = PartialFD.objects.all()
         if objects.count() == 0:
             print(u'部分更新指纹库记录条数为0')
-            return -1
         fd_dict = {}
         for item in objects:
             locationID = item.locationID
             apMAC = item.apMAC
             rssi = item.rssi
             channel = item.channel
+            historyDataPath = item.historyDataPath
             level1 = fd_dict.get(locationID, {})
-            level1[apMAC] = {'rssi': rssi, 'channel': channel}
+            level1[apMAC] = {'rssi': rssi, 'channel': channel, 'historyDataPath': historyDataPath}
             fd_dict[locationID] = level1
         return fd_dict
 
@@ -158,7 +171,6 @@ class UpdateFDLoader(object):
         objects = UpdateFD.objects.filter(dateTime=dateTime)
         if objects.count() == 0:
             print(u'%s 这一天没有更新指纹库生成' % dateTime)
-            return -1
         fd_dict = {}
         for item in objects:
             locationID = item.locationID

@@ -87,6 +87,7 @@ class Extractor(object):
     def getTagedSRCData(self, srcData):
         locationID = self.findBestLocation(srcData)
         tagedSRCData = TagedSRCData(srcData, locationID)
+        tagedSRCData.setFingerDataList(srcData.getFingerDataList())
         return tagedSRCData
 
     # 计算pearson相关系数
