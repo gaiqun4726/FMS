@@ -3,6 +3,7 @@
 from xml.dom.minidom import parse
 import xml.dom.minidom
 import os
+import json
 import pandas as pd
 
 from fpms.models import InitialFD, PartialFD, RegParameters, UpdateFD
@@ -181,6 +182,22 @@ class UpdateFDLoader(object):
             level1[apMAC] = {'rssi': rssi, 'channel': channel}
             fd_dict[locationID] = level1
         return fd_dict
+
+
+# 加载参考点空间聚类结果
+class ClusterResultsLoader(object):
+    @staticmethod
+    def getClusterResults():
+        path = ResLoader.getClusterResults()
+        with open(path, 'r') as f:
+            clusterToLocationDict = json.load(f)
+        locationToClusterDict = {}
+        keys = clusterToLocationDict.keys()
+        for cls in keys:
+            locationList = clusterToLocationDict.get(cls)
+            for locationID in locationList:
+                locationToClusterDict[locationID] = cls
+        return clusterToLocationDict, locationToClusterDict
 
 
 # 从csv文件中加载指纹库

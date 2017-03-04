@@ -8,7 +8,7 @@
 
     <resourcepath>Graduation Project\resources</resourcepath>
     <aplist>ap-list.csv</aplist>
-    <clusterresults>cluster-results.csv</clusterresults>
+    <clusterresults>cluster-results.txt</clusterresults>
     <locationcoordinates>location-coordinates.csv</locationcoordinates>
     <samplefingerdatapath>sample_finger_data</samplefingerdatapath>
     <fingerorigindatapath>origin_data</fingerorigindatapath>
