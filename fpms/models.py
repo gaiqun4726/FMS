@@ -15,7 +15,7 @@ class InitialFD(models.Model):
 
 # 更新指纹库
 class UpdateFD(models.Model):
-    dateTime = models.DateTimeField('update datetime', auto_now=True)
+    dateTime = models.CharField(max_length=30)
     locationID = models.CharField(max_length=20)
     apMAC = models.CharField(max_length=20)
     rssi = models.IntegerField(default=-100)

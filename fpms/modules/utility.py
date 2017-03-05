@@ -73,6 +73,7 @@ def time_period(start, end, length):
 
 # 求得模式队列的均值
 def get_mean(pattern, ap_list):
+    # print(pattern)
     res = {}
     for x in ap_list:
         res[x] = np.mean(pattern[x]).round()
@@ -84,7 +85,8 @@ def get_staticCharacters(values, ap_list):
     res = {}
     for x in ap_list:
         val = values[x]
-        res[x] = val
+        if not np.isnan(val):
+            res[x] = val
     return res
 
 

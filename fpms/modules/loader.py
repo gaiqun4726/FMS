@@ -39,6 +39,12 @@ class ResLoader(object):
         return os.path.join(os.path.join(middleFilePath, dateTime), mergeFilePath)
 
     @staticmethod
+    def getStatisticsResultsPath():
+        rootPath = ResLoader.getRootPath()
+        statisticsResultsPath = ResLoader.__collection.getElementsByTagName("statisticsresults")[0].childNodes[0].data
+        return os.path.join(rootPath, statisticsResultsPath)
+
+    @staticmethod
     def getResourcePath():
         rootPath = ResLoader.getRootPath()
         resourcePath = ResLoader.__collection.getElementsByTagName("resourcepath")[0].childNodes[0].data
@@ -112,8 +118,8 @@ class InitialFDLoader(object):
     @staticmethod
     def getInitialFD():
         objects = InitialFD.objects.all()
-        if objects.count() == 0:
-            print(u'初始指纹库记录条数为0')
+        # if objects.count() == 0:
+        #     print(u'初始指纹库记录条数为0')
         fd_dict = {}
         for item in objects:
             locationID = item.locationID
@@ -132,8 +138,8 @@ class InitialFDLoader(object):
 class PartialFDLoader(object):
     def getPartialFD(self):
         objects = PartialFD.objects.all()
-        if objects.count() == 0:
-            print(u'部分更新指纹库记录条数为0')
+        # if objects.count() == 0:
+        #     print(u'部分更新指纹库记录条数为0')
         fd_dict = {}
         for item in objects:
             locationID = item.locationID

@@ -3,13 +3,14 @@
 import os
 import pickle
 import numpy as np
+import traceback
 from sklearn import linear_model
 
 from loader import InitialFDLoader, PartialFDLoader, ParameterLoader, ResLoader
 from extractor import TagedSRCData
 from fpms.models import RegParameters, PartialFD
 
-standardQ = .3
+standardQ = 0.3
 
 
 # 设备信号差异性校正类
@@ -30,13 +31,13 @@ class Corrector(object):
             for tagedSRCData in self.tagedSRCDataList:
                 updateData = self.removeDiff(tagedSRCData)
                 self.updateDataList.append(updateData)
-
+        else:
+            self.updateDataList = self.tagedSRCDataList
         return self.updateDataList
 
     # 剔除设备信号差异性
     def removeDiff(self, tagedSRCData):
         # 利用回归方程剔除设备信号差异性
-        locationID = tagedSRCData.locationID
         fingerDataList = tagedSRCData.getFingerDataList()
         a = self.parameterDict['a']
         b = self.parameterDict['b']
@@ -44,59 +45,62 @@ class Corrector(object):
             rssi = item.rssi
             newRssi = a * rssi + b
             item.rssi = newRssi
-        updateData = TagedSRCData(self.muMac, locationID)
-        updateData.setFingerDataList(fingerDataList)
-        return updateData
+        tagedSRCData.setFingerDataList(fingerDataList)
+        return tagedSRCData
 
 
 # merge更新数据到部分更新指纹库类
 class MergeData(object):
     def __init__(self):
-        self.partialFD = {}
+        partialFDLoader = PartialFDLoader()
+        self.partialFD = partialFDLoader.getPartialFD()
 
     # 将更新数据存入部分更新指纹库的历史数据，等待日后merge，取均值
     def mergeDataToPartialFD(self, updateDataList):
-        self.partialFD = PartialFDLoader.getPartialFD()
         for updateData in updateDataList:
             locationID = updateData.locationID
+            # if locationID == '0' or locationID == 0:
+            #     pass
             if locationID in self.partialFD.keys():
                 for item in updateData.getFingerDataList():
                     apMac = item.apMac
-                    if apMac in self.partialFD[locationID].keys():
-                        historyDataPath = os.path.join(ResLoader.getPartialFDHistoryDataPath(),
-                                                       self.partialFD[locationID][apMac]['historyDataPath'])
-                        historyDataList = []
-                        with open(historyDataPath, "rb") as historyDataFile:
-                            try:
-                                while True:
-                                    historyData = pickle.load(historyDataFile)
-                                    historyDataList.append(historyData)
-                            except EOFError:
-                                pass
-                        historyDataList.append(item)
-                        output = open(historyDataPath, 'wb')
-                        for item2 in historyDataList:
-                            pickle.dump(item2, output, -1)
-                        output.close()
-                    else:
-                        fileName = str(locationID) + apMac
+                    if item.rssi != 0:
+                        if apMac in self.partialFD[locationID].keys():
+                            historyDataPath = os.path.join(ResLoader.getPartialFDHistoryDataPath(),
+                                                           self.partialFD[locationID][apMac]['historyDataPath'])
+                            historyDataList = []
+                            with open(historyDataPath, "rb") as historyDataFile:
+                                try:
+                                    while True:
+                                        historyData = pickle.load(historyDataFile)
+                                        historyDataList.append(historyData)
+                                except EOFError:
+                                    pass
+                            historyDataList.append(item)
+                            output = open(historyDataPath, 'wb')
+                            for item2 in historyDataList:
+                                pickle.dump(item2, output, -1)
+                            output.close()
+                        else:
+                            fileName = str(locationID) + '_' + item.apMac.replace(':', '-')
+                            path = os.path.join(ResLoader.getPartialFDHistoryDataPath(), fileName)
+                            output = open(path, 'wb')
+                            pickle.dump(item, output, -1)
+                            output.close()
+                            partialFD = PartialFD(locationID=locationID, apMAC=item.apMac, rssi=item.rssi,
+                                                  channel=item.channel, historyDataPath=fileName)
+                            partialFD.save()
+            else:
+                for item in updateData.getFingerDataList():
+                    if item.rssi != 0:
+                        fileName = str(locationID) + '_' + item.apMac.replace(':', '-')
                         path = os.path.join(ResLoader.getPartialFDHistoryDataPath(), fileName)
                         output = open(path, 'wb')
                         pickle.dump(item, output, -1)
                         output.close()
-                        partialFD = PartialFD(locationID=locationID, apMac=item.apMac, rssi=item.rssi,
-                                              channel=item.channel, historyDataPath=path)
+                        partialFD = PartialFD(locationID=locationID, apMAC=item.apMac, rssi=item.rssi,
+                                              channel=item.channel, historyDataPath=fileName)
                         partialFD.save()
-            else:
-                for item in updateData.getFingerDataList():
-                    fileName = str(locationID) + item.apMac
-                    path = os.path.join(ResLoader.getPartialFDHistoryDataPath(), fileName)
-                    output = open(path, 'wb')
-                    pickle.dump(item, output, -1)
-                    output.close()
-                    partialFD = PartialFD(locationID=locationID, apMac=item.apMac, rssi=item.rssi, channel=item.channel,
-                                          historyDataPath=path)
-                    partialFD.save()
 
 
 # 自动更新回归系数表类
@@ -168,7 +172,8 @@ class RegeressionPar(object):
                 Q = self.computeQ(self.trainDataList)
                 # 将新的系数、Q、训练数据存入数据库
                 parameterUsability = True
-            output = open(trainSetPath, 'wb')
+            path = os.path.join(ResLoader.getRegressionTrainSetPath(), trainSetPath)
+            output = open(path, 'wb')
             for item in self.trainDataList:
                 pickle.dump(item, output, -1)
             output.close()
@@ -199,7 +204,15 @@ class RegeressionPar(object):
                     o_apMac = item2.apMac
                     o_rssi = item2.rssi
                     o_channel = item2.channel
-                    item3 = fd_dict[locationID][o_apMac]
+                    try:
+                        tmp = fd_dict.get(locationID, {})
+                        if not tmp:
+                            continue
+                        item3 = tmp.get(o_apMac, {})
+                        if not item3:
+                            continue
+                    except:
+                        traceback.print_exc()
                     c_rssi = item3['rssi']
                     c_channel = item3['channel']
                     if o_channel == c_channel and c_rssi != -100:
@@ -208,10 +221,13 @@ class RegeressionPar(object):
         length = len(train_Y)
         train_X = np.array(train_X).reshape((length, 1))
         regr = linear_model.LinearRegression()
-        regr.fit(train_X, train_Y)
-        a = regr.coef_
-        b = regr.intercept_
-        newParameterDict = {'a': a, 'b': b}
+        newParameterDict = {'a': 0, 'b': 0}
+        if len(train_X) != 0 and len(train_Y) != 0:
+            regr.fit(train_X, train_Y)
+            a = regr.coef_
+            b = regr.intercept_
+            newParameterDict['a'] = a
+            newParameterDict['b'] = b
         return newParameterDict
 
     # 计算信号强度分布占比Q
@@ -233,5 +249,6 @@ class RegeressionPar(object):
                     location_times += 1
             ratio_rssi = len(s_rssi_range) / 60
             ratio_location = location_times / len(fd_dict.keys())
-            Q = round(ratio_rssi * ratio_location, 2)
+            # Q = round(ratio_rssi * ratio_location, 2)
+            Q = round(ratio_rssi, 2)
         return Q

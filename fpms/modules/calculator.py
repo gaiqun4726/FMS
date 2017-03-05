@@ -16,9 +16,10 @@ from fpms.models import PartialFD, UpdateFD
 class Calculator(object):
     def __init__(self, lastDateTime, newDataTime):
         self.initialFD = InitialFDLoader.getInitialFD()
-        self.partialFD = PartialFDLoader().getPartialFD()
+        partialFDLoader = PartialFDLoader()
+        self.partialFD = partialFDLoader.getPartialFD()
         self.clusterToLocationDict, self.locationToClusterDict = ClusterResultsLoader.getClusterResults()
-        self.updateFD = UpdateFDLoader().getUpdateFD(lastDateTime)
+        self.updateFD = UpdateFDLoader().getUpdateFD(lastDateTime) if lastDateTime != '' else {}
         self.newDateTime = newDataTime
 
     # 将部分更新指纹库中的历史数据进行融合
@@ -52,11 +53,14 @@ class Calculator(object):
         locationList = self.clusterToLocationDict[cls]
         count = 0
         for locationID in locationList:
-            partialFDRes = self.partialFD[locationID]
-            initialFDRes = self.initialFD[locationID]
+            partialFDRes = self.partialFD.get(locationID, {})
+            initialFDRes = self.initialFD.get(locationID, {})
+            if not initialFDRes:
+                continue
             if len(partialFDRes.keys()) == len(initialFDRes.keys()):
                 count += 1
         return count > math.floor(len(locationList) / 2)
+        # return count > 0
 
     # 对缺失指纹进行推算，生成更新指纹库
     def calculate(self):

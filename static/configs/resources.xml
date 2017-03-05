@@ -6,6 +6,7 @@
     <middlefilepath>Graduation Project\data</middlefilepath>
     <mergefilepath>merge_files</mergefilepath>
 
+    <statisticsresults>Graduation Project\project\statistics results</statisticsresults>
     <resourcepath>Graduation Project\resources</resourcepath>
     <aplist>ap-list.csv</aplist>
     <clusterresults>cluster-results.txt</clusterresults>

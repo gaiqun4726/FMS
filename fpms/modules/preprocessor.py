@@ -101,7 +101,7 @@ class InitialFDGenerator(object):
         outpath = self.fingerMergeFilePath
 
         if not os.path.isdir(inpath):
-            print("没有Wi-Fi探针采样数据！")
+            print(u"没有Wi-Fi探针采样数据！")
             return -1
 
         if not os.path.isdir(outpath):
@@ -145,10 +145,10 @@ class PreProcessor(object):
         outpath = self.mergeFilePath
 
         if not os.path.isdir(inpath):
-            print(self.dateTime + "没有Wi-Fi探针数据记录！")
+            print(self.dateTime + u"没有Wi-Fi探针数据记录！")
             return -1
 
-        print("将探针数据按MAC地址分类--start")
+        # print(u"将探针数据按MAC地址分类--start")
         if not os.path.isdir(outpath):
             os.makedirs(outpath)
 
@@ -163,6 +163,8 @@ class PreProcessor(object):
                     # 将ap剔除，保存mu
                     if int(seg[4]) == 1:
                         self.allMuSet.add(muMac)
+                    timeStr = seg[0]
+                    seg[0] = timeStr if len(timeStr) == 19 else timeStr[:-4]
                     line = ','.join(seg)
                     if muMac in dict_of_file:
                         dict_of_file[muMac].append(line)
@@ -176,8 +178,8 @@ class PreProcessor(object):
                         fout.close()
                     except IOError:
                         print(block)
-        print("将记录按MAC地址分类--end")
-        print('采样周期内，所有连接系统内AP的MAC地址列表个数%d：\n' % len(self.allMuSet))
+        # print(u"将记录按MAC地址分类--end")
+        # print(u'采样周期内，所有连接系统内AP的MAC地址列表个数%d：\n' % len(self.allMuSet))
 
     # 载入一个mu全天的探针数据，并进行信道切换数据剔除、卡尔曼滤波等预处理操作
     def loadData(self, muMac):
@@ -191,7 +193,7 @@ class PreProcessor(object):
     def checkInitialFD(self):
         initialFD = InitialFDLoader.getInitialFD()
         if initialFD == {}:
-            print('没有初始指纹库')
+            print(u'没有初始指纹库')
             return False
         else:
             return True

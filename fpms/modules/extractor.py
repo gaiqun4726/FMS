@@ -24,18 +24,14 @@ class Extractor(object):
     # 提取静止状态信号特征
     def extractSRC(self):
         srcList = []
-        apListPath = ResLoader.getApList()
-        # 读取ap_list文件
-        fh = open(apListPath)
-        ap = fh.readlines()
-        fh.close()
-        ap = [x[:-1] for x in ap]  # 列表有序
+        df_kalman = self.processedDf
+        ap = list(df_kalman.columns)
         # 存放临时识别出的信号模式
         pattern = {}
         for value in ap:
             pattern[value] = []  # 字典无序
         # 读取kalman滤波后的数据
-        df_kalman = self.processedDf
+
         index = df_kalman.index
         columns = df_kalman.columns
         start_index = index[0]
@@ -54,7 +50,11 @@ class Extractor(object):
                             staticCharacters = get_staticCharacters(mean_values, ap)
                             wifiDataList = []
                             for apMac in staticCharacters.keys():
-                                channel = self.channelDf.ix[start_index, apMac]
+                                try:
+                                    channel = self.channelDf.ix[start_index, apMac]
+                                except:
+                                    print self.channelDf
+                                    pass
                                 wifiDataUnit = WiFiDataUnit(apMac, staticCharacters[apMac], channel)
                                 wifiDataList.append(wifiDataUnit)
                             srcData = SRCData(self.muMac)
@@ -88,7 +88,7 @@ class Extractor(object):
         locationID = self.findBestLocation(srcData)
         tagedSRCData = TagedSRCData(srcData, locationID)
         tagedSRCData.setFingerDataList(srcData.getFingerDataList())
-        return tagedSRCData
+        return tagedSRCData if locationID != 0 else -1
 
     # 计算pearson相关系数
     def computePearsonCor(self, observeData, calibrateData):
@@ -114,7 +114,8 @@ class Extractor(object):
         srcList = self.extractSRC()
         for srcData in srcList:
             tagedSRCData = self.getTagedSRCData(srcData)
-            self.tagedSRCDataList.append(tagedSRCData)
+            if tagedSRCData != -1:
+                self.tagedSRCDataList.append(tagedSRCData)
         return self.tagedSRCDataList
 
     # 将指纹库整理成SRCData的格式，便于计算pearson相关系数
@@ -166,7 +167,10 @@ class SRCData(WiFiDataList):
 # 有位置标记的静止状态信号特征
 class TagedSRCData(SRCData):
     def __init__(self, srcData, locationID):
+        # try:
         muMac = srcData.muMac
+        # except:
+        #     print srcData
         SRCData.__init__(self, muMac)
         self.locationID = locationID
 
