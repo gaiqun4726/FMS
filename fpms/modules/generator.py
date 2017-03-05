@@ -118,8 +118,9 @@ class Generator(threading.Thread):
         calculator.calculate()
         print(u'------更新数据库生成end------')
         print(u'------指纹库自动更新维护end------')
-        path = ResLoader.getStatisticsResultsPath()
-        fh = open(os.path.join(path, datetime + '.txt'), 'w')
+        fileName = self.dateTime + '.txt'
+        path = os.path.join(ResLoader.getStatisticsResultsPath(), fileName)
+        fh = open(path, 'w')
         fh.write(u'全天MU数量'.encode('utf') + ':' + str(len(muSet)) + '\n')
         fh.write(u'更新数据数量'.encode('utf') + ':' + str(count) + '\n')
         fh.close()

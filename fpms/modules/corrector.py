@@ -31,8 +31,8 @@ class Corrector(object):
             for tagedSRCData in self.tagedSRCDataList:
                 updateData = self.removeDiff(tagedSRCData)
                 self.updateDataList.append(updateData)
-        else:
-            self.updateDataList = self.tagedSRCDataList
+        # else:
+        #     self.updateDataList = self.tagedSRCDataList
         return self.updateDataList
 
     # 剔除设备信号差异性

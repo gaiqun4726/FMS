@@ -36,7 +36,8 @@ def test(request):
             dirList.append(dirname)
     dirList.sort()
     for dirname in dirList:
-        generator = Generator('test', dirname)
-        generator.start()
-        generator.join()
+        if dirname > '2016-10-31':
+            generator = Generator('test', dirname)
+            generator.start()
+            generator.join()
     return HttpResponse('done')
